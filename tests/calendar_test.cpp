@@ -1,24 +1,30 @@
 // tests/calendar_test.cpp
-#include <chrono>
-#include <vector>
+#include <cstdio>
 
-struct Cell {
-    // Single calendar cell
-    std::chrono::year_month_day date;
-    bool in_month;
-};
+#include "domain/calendar.hpp"
 
-// Generate single month grid of cells
-std::vector<Cell> month_grid(std::chrono::year y, std::chrono::month m) {
-    std::chrono::sys_days first{std::chrono::year_month_day{y, m, std::chrono::day{1}}};
-    std::chrono::days lead = std::chrono::weekday{first} - std::chrono::Monday;
-    std::chrono::sys_days start = first - lead;
+#define CHECK(x) do { if (!(x)) { \
+    std::fprintf(stderr, "%s:%d: CHECK failed: %s\n", __FILE__, __LINE__, #x); \
+    return 1; } } while (0)
 
-    std::vector<Cell> cells;
-    cells.reserve(42);  // static allocation
-    for (int i = 0; i < 42; ++i) {
-        std::chrono::year_month_day d{start + std::chrono::days{i}};
-        cells.push_back({d, d.month() == m});
-    }
-    return cells;
+using namespace std::chrono;
+
+int main() {
+    // Oct 2026 starts on a Thursday; grid should start Mon Sep 28.
+    auto cells = month_grid(year{2026}, October);
+    CHECK(cells.size() == 42);
+    CHECK(cells[0].date == 2026y / September / 28d);
+    CHECK(!cells[0].in_month);
+    CHECK(cells[3].date == 2026y / October / 1d);
+    CHECK(cells[3].in_month);
+
+    CHECK(iso(2026y / March / 5d) == "2026-03-05");
+
+    CHECK(valid_iso_date("2024-02-29"));
+    CHECK(!valid_iso_date("2026-02-29"));
+    CHECK(!valid_iso_date("2026-1-01"));
+    CHECK(!valid_iso_date("abcd-ef-gh"));
+    CHECK(!valid_iso_date("2026-13-01"));
+
+    std::puts("all calendar tests passed");
 }
